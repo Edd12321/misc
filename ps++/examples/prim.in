@@ -1,0 +1,21 @@
+#!../bin/ps++ -x
+citește x
+┌cât timp x≠0 execută
+│    ok ← 1
+│   ┌dacă x≠2 și (x<2 sau x%2=0) atunci
+│   │   ok ← 0
+│   │altfel
+│   │   ┌pentru i←2,x/2 execută
+│   │   │   ┌dacă x%i=0 atunci
+│   │   │   │    ok ← 0
+│   │   │   │    i ← x/2
+│   │   │   └■
+│   │   └■
+│   └■
+│   ┌dacă ok atunci
+│   │  scrie x, " este prim\n"
+│   │altfel
+│   │  scrie x, " nu este prim\n"
+│   └■
+│   x ← x-1 
+└■

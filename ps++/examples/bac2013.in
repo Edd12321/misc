@@ -1,0 +1,14 @@
+#!../bin/ps++ -x
+citeşte a,b,c
+/* numere naturale, a≤b, 0≤c≤9 */
+s←0
+┌pentru x←a,b execută
+│ y←x
+│┌cât timp y>0 execută
+││┌dacă y%10=c atunci
+│││ s←s+1
+││└■
+││ y←[y/10]
+│└■
+└■
+scrie s

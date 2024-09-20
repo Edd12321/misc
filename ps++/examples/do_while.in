@@ -1,0 +1,6 @@
+#!../bin/ps++ -x
+citește n, nr
+┌repetă
+│    scrie n
+│    n ← n-nr
+└până când n≤0
