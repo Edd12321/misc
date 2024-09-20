@@ -143,7 +143,7 @@ static inline void eval(std::wistream& in)
 								str = L" while (!(";
 								finish_do_while = true;
 							}
-							if (str == L"și")
+							if (str == L"și" || str == L"şi")
 								str = L"&&";
 							if (str == L"sau")
 								str = L"||";
