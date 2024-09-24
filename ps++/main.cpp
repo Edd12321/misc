@@ -237,8 +237,14 @@ int main(int argc, char *argv[])
 			auto compiler = getenv("CXX");
 			if (!compiler)
 				compiler = (char*)"g++";
-			exec_cmd((char*[]) { compiler, ((std::string)tmpfil+".cpp").data(), (char*)"-o", tmpfil, NULL });
-			exec_cmd((char*[]) { tmpfil, NULL });
+			/* empty */ {
+				char *argv[] = { compiler, ((std::string)tmpfil+".cpp").data(), (char*)"-o", tmpfil, NULL };
+				exec_cmd(argv);
+			}
+			/* empty */ {
+				char *argv[] = { tmpfil, NULL };
+				exec_cmd(argv);
+			}
 		}
 	}
 	return EXIT_SUCCESS;
