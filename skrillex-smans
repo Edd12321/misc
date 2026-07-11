@@ -85,6 +85,7 @@ int16_t drum(unsigned long long i) {
 		float t = (float)mod / 44100;
 		sample = exp(20 * -t) * 200 * (rand() % 1001 - 500);
 
+		/*
 		if (doublekick) {
 			if (beep) {
 				if (mod >= 30000 && mod <= 36000)
@@ -93,7 +94,7 @@ int16_t drum(unsigned long long i) {
 					sample += i % 200 ? 14000 : 0;	
 				else sample += 2000.*sin(M_PI*100*sin(M_PI*3.2*t));
 			} else sample += 2000.*sin(M_PI*50*sin(M_PI*6.4*t));
-		}
+		} */
 	}
 	return sample;
 }
