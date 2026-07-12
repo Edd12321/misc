@@ -1,24 +1,29 @@
 #!/usr/bin/env zrc
 # allegedly a cover of skrillex - scary monsters and nice sprites
 
+# if listening on headphones uncomment these 2 idk
+# set SDL_AUDIODRIVER = alsa
+# set AUDIODEV = hw:1,0
+# export SDL_AUDIODRIVER AUDIODEV
+
 tcc -O3 -run <{echo{
-// #include "/home/edward/Muzak/tune.h"
-// TUNE.H BEGIN
-#ifndef TUNE_H
-#define TUNE_H
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+#define RIFF_DUR 6.9f
 
 static inline float saw(float ph) {
-	return 2. * (ph - floor(ph)) - 1;
+	return 2.f * (ph - floor(ph)) - 1.f;
 }
 
+/*
 static inline float squ(float ph) {
-	return ph - floor(ph) < 0.5 ? 1 : -1;
+	return ph - floor(ph) < .5f ? 1.f : -1.f;
 }
+*/
 
 static inline float note(const char *s) {
 	int t = 0;
@@ -37,16 +42,7 @@ static inline float note(const char *s) {
 	if (*s == 'b') --t, ++s;
 	
 	int n = (atoi(s) + 1) * 12 + t;
-	return 440.0f * powf(2, (n - 69.0f) / 12.0f);
-}
-
-#endif
-// TUNE.H END
-
-float lopass(float in) {
-	static float out = 0;
-	out += 0.05 * (in - out);
-	return out;
+	return 440.f * powf(2, (n - 69.f) / 12.f);
 }
 
 // this was actually 2 different files but the beat works kinda ok with the lead
@@ -54,27 +50,25 @@ float lopass(float in) {
 int16_t drum(unsigned long long i) {
 	static bool kick = true;
 	static bool doublekick = false;
-	static bool beep = true;
 	int16_t sample = 0;
 
-	unsigned long long mod = i % 44100;
-	if (i >= 44100 && mod == 0) {
+	float kludge = 44100.f * RIFF_DUR / 8.f;
+	unsigned long long mod = i % (unsigned long long)kludge;
+	if (i >= kludge && mod == 0) {
 		kick = !kick;
 		if (kick)
 			doublekick = !doublekick;
-		else if (doublekick)
-			beep = !beep;
 	}
 	
 	if (kick) {
 		if (mod <= 700 || (mod <= 900 && doublekick))
-			sample = rand() % 3001 - 1500;
+			sample = rand() % 3201 - 1600;
 		else {
-			float t = (float)mod / 44100;
+			float t = (float)mod / kludge;
 			sample = exp(6 * -t) * 20000 * sin(M_PI * 2 * 600 * exp(-16*t) * t)
 			       + exp(9 * -t) * (rand() % 301 - 150);
-			if (doublekick && mod >= 44100./2) {
-				t = (float)(mod - 44100./2) / 44100;
+			if (doublekick && mod >= kludge/2) {
+				t = (float)(mod - kludge/2) / kludge;
 				sample += exp(6 * -t) * 22000 * sin(M_PI * 2 * 300 * exp(-14*t) * t)
 				        + exp(9 * -t) * (rand() % 151 - 75);
 			}
@@ -82,56 +76,64 @@ int16_t drum(unsigned long long i) {
 	
 
 	} else {
-		float t = (float)mod / 44100;
+		float t = (float)mod / kludge;
 		sample = exp(20 * -t) * 200 * (rand() % 1001 - 500);
 
 		/*
-		if (doublekick) {
-			if (beep) {
-				if (mod >= 30000 && mod <= 36000)
-					sample += i % 80 ? 9000 : 0;	
-				else if (mod >= 36000)
-					sample += i % 200 ? 14000 : 0;	
-				else sample += 2000.*sin(M_PI*100*sin(M_PI*3.2*t));
-			} else sample += 2000.*sin(M_PI*50*sin(M_PI*6.4*t));
-		} */
+		if (doublekick)
+			sample += 2000.*sin(M_PI*50*sin(M_PI*6.4*t));
+		*/
 	}
 	return sample;
 }
 
-float lead(float ph) {
+float lead(float t) {
+	static float ph = 0;
 	static const char *song[] = {
-		"G3", "G4", "F4", "G4", "A#4",
-		"A#4", "G4", "D5", "C5", "A#4",
-		"F4", "F4", "A#3", "A3", "F4",
-		"D#4", "D4", "C4", "A#3", "F4",
-		"A#3", "G3", "A#3", "D4", "G5",
-		"D5", "A#4", "G4", "F5", "A#4",
-		"G4", "F4"
-		// idk if last 4 notes are 1 less octave no. or not
+		"G4", "G5", "F5", "G5", "A#5",
+		"A#5", "G5", "D6", "C6", "A#5",
+		"F4", "F4", "A#4", "A4", "F5",
+		"D#5", "D5", "C5", "A#4", "F5",
+		"A#4", "G4", "A#4", "D5", "G6",
+		"D6", "A#5", "G5", "F6", "A#5",
+		"G5", "F5"
 	};
-	size_t len = sizeof song / sizeof *song;
-	ph = fmod(ph, 8);
+	static size_t len = sizeof song / sizeof *song;
+	static float dur_note = RIFF_DUR / (sizeof song / sizeof *song);
+	static float glis = .095f;
 
-	float freq = note(song[(size_t)(ph / 8 * len)]);
-	freq /= 1 + .000045f * sin(M_PI*10.0f * ph);
+	size_t note_idx = fmod(t, RIFF_DUR) / RIFF_DUR * len;
+	float freq = note(song[note_idx]);
+	
+	float glismod = fmod(t, dur_note) / dur_note;
+	if (glismod >= 1.f - glis) {
+		float nextfreq = note(song[note_idx + 1 >= len ? 0 : note_idx + 1]);
+		freq += (nextfreq - freq) * (glismod - (1.f - glis)) / glis;
+	}
 
-	return 10000 * 1.f/4 * (
-		saw(freq * ph) + squ(freq * ph) +
-		saw(freq * ph / 8 + .2f) +
-		lopass(saw(freq * ph * 2 + 0.4) + saw(freq * ph * 4 + 0.8)));
+	float mod = .4f * (sinf(2.f * M_PI * 80 * t) - 1.f);
+	freq *= exp2f(mod / 12.f);
+
+	ph += freq / 44100.f;
+	if (ph >= 1.f) ph -= 1.f;
+	return 5000.f * saw(ph);
 }
 
 int main() {
 	unsigned long long i = 0;
-	float ph = 0;
+	float t = 0;
 	int16_t sample;
 
-	for (;; ++i, ph = (float)(i % (44100 * 8)) / 44100.0f) {
+	srand(time(NULL));
+	for (;; ++i, t = i * 1.f / 44100.f) {
+		sample = lead(t);
+		if (t >= RIFF_DUR)
+			sample += drum(i);
 
-		sample = lead(ph) + drum(i);
-		if (i <= 20 * 44100)
-			sample *= i / 44100. / 20;
+		if (sample > 32767) sample = 32767;
+		if (sample < -32768) sample = -32768; 
+		if (t < 20.f)
+			sample *= (t + 1) / 20.f;
 		
 		fwrite(&sample, sizeof sample, 1, stdout);
 	}
